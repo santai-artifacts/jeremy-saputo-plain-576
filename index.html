@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangman</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            letter-spacing: -1px;
+        }
+
+        .game-content {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .hangman-drawing {
+            flex: 1;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        .drawing {
+            font-family: 'Courier New', monospace;
+            white-space: pre;
+            font-size: 14px;
+            color: #333;
+            line-height: 1.4;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-info {
+            flex: 1;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .word-display {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .word {
+            font-size: 2.5rem;
+            letter-spacing: 12px;
+            font-weight: 600;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .guesses-left {
+            text-align: center;
+            font-size: 1.1rem;
+            color: #764ba2;
+            font-weight: 600;
+        }
+
+        .guesses-left.warning {
+            color: #e74c3c;
+            animation: pulse 0.6s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .wrong-letters {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #e74c3c;
+            min-height: 30px;
+        }
+
+        .keyboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(35px, 1fr));
+            gap: 6px;
+            margin: 30px 0;
+        }
+
+        .letter-btn {
+            padding: 10px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+        }
+
+        .letter-btn:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .letter-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: #f0f0f0;
+            border-color: #ccc;
+            color: #999;
+        }
+
+        .letter-btn.correct {
+            background: #27ae60;
+            color: white;
+            border-color: #27ae60;
+        }
+
+        .letter-btn.incorrect {
+            background: #e74c3c;
+            color: white;
+            border-color: #e74c3c;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+        }
+
+        .modal-content h2 {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .modal-content.win h2 {
+            color: #27ae60;
+        }
+
+        .modal-content.lose h2 {
+            color: #e74c3c;
+        }
+
+        .modal-content p {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .play-again-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+
+        .play-again-btn:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 500px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+                margin-bottom: 20px;
+            }
+
+            .game-content {
+                gap: 20px;
+            }
+
+            .word {
+                font-size: 1.8rem;
+                letter-spacing: 8px;
+            }
+
+            .keyboard {
+                gap: 4px;
+            }
+
+            .letter-btn {
+                padding: 8px;
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Hangman</h1>
+
+        <div class="game-content">
+            <div class="hangman-drawing">
+                <div class="drawing" id="drawing"></div>
+            </div>
+
+            <div class="game-info">
+                <div class="word-display">
+                    <div class="word" id="word"></div>
+                    <div class="status" id="status"></div>
+                </div>
+                <div>
+                    <div class="guesses-left" id="guessesLeft"></div>
+                    <div class="wrong-letters" id="wrongLetters"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="keyboard" id="keyboard"></div>
+    </div>
+
+    <div class="modal" id="modal">
+        <div class="modal-content" id="modalContent">
+            <h2 id="modalTitle"></h2>
+            <p id="modalMessage"></p>
+            <button class="play-again-btn" onclick="initGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+        const words = [
+            'hangman', 'javascript', 'programming', 'developer', 'keyboard', 'computer',
+            'database', 'algorithm', 'function', 'variable', 'boolean', 'interface',
+            'exception', 'protocol', 'terminal', 'debugger', 'compiler', 'framework',
+            'library', 'package', 'module', 'component', 'template', 'bootstrap',
+            'browser', 'internet', 'network', 'server', 'client', 'request',
+            'response', 'session', 'cookie', 'cache', 'thread', 'process',
+            'architecture', 'security', 'encryption', 'password', 'firewall', 'proxy',
+            'gateway', 'router', 'switch', 'protocol', 'bandwidth', 'latency'
+        ];
+
+        const hangmanStages = [
+            `
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+      |
+      |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+  |   |
+      |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+ /|   |
+      |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+ /|\\  |
+      |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+ /|\\  |
+ /    |
+      |
+=========`,
+            `
+  +---+
+  |   |
+  O   |
+ /|\\  |
+ / \\  |
+      |
+=========`
+        ];
+
+        let word = '';
+        let guessedLetters = [];
+        let wrongGuesses = 0;
+        const maxWrongGuesses = 6;
+
+        function initGame() {
+            word = words[Math.floor(Math.random() * words.length)].toUpperCase();
+            guessedLetters = [];
+            wrongGuesses = 0;
+            document.getElementById('modal').classList.remove('show');
+            renderGame();
+            createKeyboard();
+        }
+
+        function createKeyboard() {
+            const keyboard = document.getElementById('keyboard');
+            keyboard.innerHTML = '';
+            const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+
+            letters.forEach(letter => {
+                const btn = document.createElement('button');
+                btn.textContent = letter;
+                btn.className = 'letter-btn';
+                btn.onclick = () => guessLetter(letter, btn);
+
+                if (guessedLetters.includes(letter)) {
+                    btn.disabled = true;
+                    if (word.includes(letter)) {
+                        btn.classList.add('correct');
+                    } else {
+                        btn.classList.add('incorrect');
+                    }
+                }
+
+                keyboard.appendChild(btn);
+            });
+        }
+
+        function guessLetter(letter, btn) {
+            if (guessedLetters.includes(letter)) return;
+
+            guessedLetters.push(letter);
+
+            if (!word.includes(letter)) {
+                wrongGuesses++;
+            }
+
+            btn.disabled = true;
+            btn.classList.add(word.includes(letter) ? 'correct' : 'incorrect');
+
+            checkGameStatus();
+            renderGame();
+        }
+
+        function checkGameStatus() {
+            const wordComplete = word.split('').every(letter => guessedLetters.includes(letter));
+
+            if (wordComplete) {
+                showModal('win', 'You Won! 🎉', `The word was: <strong>${word}</strong>`);
+            } else if (wrongGuesses >= maxWrongGuesses) {
+                showModal('lose', 'Game Over 😢', `The word was: <strong>${word}</strong>`);
+            }
+        }
+
+        function showModal(type, title, message) {
+            const modal = document.getElementById('modal');
+            const modalContent = document.getElementById('modalContent');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+
+            modalContent.className = 'modal-content ' + type;
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message;
+            modal.classList.add('show');
+        }
+
+        function renderGame() {
+            // Draw hangman
+            document.getElementById('drawing').textContent = hangmanStages[wrongGuesses];
+
+            // Display word
+            const displayWord = word
+                .split('')
+                .map(letter => guessedLetters.includes(letter) ? letter : '_')
+                .join(' ');
+            document.getElementById('word').textContent = displayWord;
+
+            // Update guesses left
+            const guessesRemaining = maxWrongGuesses - wrongGuesses;
+            const guessesLeftEl = document.getElementById('guessesLeft');
+            guessesLeftEl.textContent = `Wrong guesses: ${wrongGuesses}/${maxWrongGuesses}`;
+
+            if (guessesRemaining <= 2) {
+                guessesLeftEl.classList.add('warning');
+            } else {
+                guessesLeftEl.classList.remove('warning');
+            }
+
+            // Display wrong letters
+            const wrongLetters = guessedLetters.filter(letter => !word.includes(letter));
+            if (wrongLetters.length > 0) {
+                document.getElementById('wrongLetters').textContent = `Wrong: ${wrongLetters.join(', ')}`;
+            } else {
+                document.getElementById('wrongLetters').textContent = '';
+            }
+        }
+
+        // Initialize game on load
+        initGame();
+    </script>
+</body>
+</html>
